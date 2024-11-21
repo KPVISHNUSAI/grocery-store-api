@@ -10,13 +10,17 @@ from .permissions import IsAdmin
 class UserViewSet(viewsets.ModelViewSet):
     queryset=User.objects.all()
     serializer_class=UserSerializer
+    permission_classes=[AllowAny]
+
 
     def get_permissions(self):
-        if self.action == 'create':
+        if self.action == 'list':
             return [IsAdmin()]
-        elif self.action in ['update','partial_update', 'destroy']:
+        elif self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
             return [IsAdmin()]
-        return [IsAuthenticated()]
+        elif self.action == 'me':
+            return [IsAuthenticated()]
+        return [AllowAny()]
     
     @action(detail=False, methods=['get'])
     def me(self, request):
