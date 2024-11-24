@@ -29,9 +29,23 @@ const productService = {
   },
 
   // Product Services
-  getAllProducts: async () => {
-    const response = await axios.get('/products/');
-    return response.data.results;
+  getAllProducts: async (params = {}) => {
+    const { 
+      page = 1, 
+      search = '', 
+      category = '', 
+      min_price = '', 
+      max_price = '' 
+    } = params;
+
+    let url = `/products/?page=${page}`;
+    if (search) url += `&search=${search}`;
+    if (category) url += `&category=${category}`;
+    if (min_price) url += `&min_price=${min_price}`;
+    if (max_price) url += `&max_price=${max_price}`;
+
+    const response = await axios.get(url);
+    return response.data;
   },
 
   getProductById: async (id) => {

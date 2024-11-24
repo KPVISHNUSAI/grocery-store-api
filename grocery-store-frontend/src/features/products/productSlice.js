@@ -59,14 +59,19 @@ export const deleteCategory = createAsyncThunk(
   }
 );
 
-// Product Thunks
 export const fetchProducts = createAsyncThunk(
-  'products/fetchProducts',
-  async (_, { rejectWithValue }) => {
+  'products/fetchAll',
+  async (params = {}, { rejectWithValue }) => {
     try {
-      return await productService.getAllProducts();
+      const response = await productService.getAllProducts(params);
+      return {
+        results: response.results,
+        count: response.count,
+        next: response.next,
+        previous: response.previous
+      };
     } catch (error) {
-      return rejectWithValue(error.response?.data);
+      return rejectWithValue(error.response?.data || 'Failed to fetch products');
     }
   }
 );
@@ -142,7 +147,9 @@ const productSlice = createSlice({
     selectedCategory: null,
     isLoading: false,
     error: null,
-    searchResults: []
+    searchResults: [],
+    totalPages: 0,
+    totalItems: 0
   },
   reducers: {
     clearError: (state) => {
@@ -184,72 +191,84 @@ const productSlice = createSlice({
         state.categories = state.categories.filter(cat => cat.id !== action.payload);
       })
 
-      /// Fetch Products
+      // Fetch Products
     .addCase(fetchProducts.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(fetchProducts.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.products = action.payload;
-        state.error = null;
-      })
-      .addCase(fetchProducts.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
-  
-      // Create Product
-      .addCase(createProduct.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(createProduct.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.products.push(action.payload);
-        state.error = null;
-      })
-      .addCase(createProduct.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
-  
-      // Update Product
-      .addCase(updateProduct.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(updateProduct.fulfilled, (state, action) => {
-        state.isLoading = false;
-        const index = state.products.findIndex(p => p.id === action.payload.id);
-        if (index !== -1) {
-          state.products[index] = action.payload;
-        }
-        state.error = null;
-      })
-      .addCase(updateProduct.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
-  
-      // Delete Product
-      .addCase(deleteProduct.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(deleteProduct.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.products = state.products.filter(p => p.id !== action.payload);
-        state.error = null;
-      })
-      .addCase(deleteProduct.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
-      //search
-      .addCase(searchProducts.fulfilled, (state, action) => {
-        state.searchResults = action.payload;
-      });
+      state.isLoading = true;
+      state.error = null;
+    })
+    .addCase(fetchProducts.fulfilled, (state, action) => {
+      state.isLoading = false;
+      state.products = action.payload;
+      state.totalItems = action.payload.count;
+      state.totalPages = Math.ceil(action.payload.count / 10);
+      state.error = null;
+    })
+    .addCase(fetchProducts.rejected, (state, action) => {
+      state.isLoading = false;
+      state.error = action.payload;
+    })
+
+    // Create Product
+    .addCase(createProduct.pending, (state) => {
+      state.isLoading = true;
+      state.error = null;
+    })
+    .addCase(createProduct.fulfilled, (state, action) => {
+      state.isLoading = false;
+      state.products.results.push(action.payload);
+      state.error = null;
+    })
+    .addCase(createProduct.rejected, (state, action) => {
+      state.isLoading = false;
+      state.error = action.payload;
+    })
+
+    // Update Product
+    .addCase(updateProduct.pending, (state) => {
+      state.isLoading = true;
+      state.error = null;
+    })
+    
+    .addCase(updateProduct.fulfilled, (state, action) => {
+      state.isLoading = false;
+    
+      // Ensure state.products is an array
+      if (!Array.isArray(state.products.results)) {
+        console.error("state.products is not an array:", state.products);
+        return;
+      }
+    
+      // Find the product and update
+      const updatedProduct = action.payload; // Ensure this matches your API response
+      const index = state.products.results.findIndex(p => p.id === updatedProduct.id);
+    
+      if (index !== -1) {
+        state.products.results[index] = updatedProduct;
+      } else {
+        console.error("Product not found in state:", updatedProduct);
+      }
+    
+      state.error = null;
+    })    
+    .addCase(updateProduct.rejected, (state, action) => {
+      state.isLoading = false;
+      state.error = action.payload;
+    })
+
+    // Delete Product
+    .addCase(deleteProduct.pending, (state) => {
+      state.isLoading = true;
+      state.error = null;
+    })
+    .addCase(deleteProduct.fulfilled, (state, action) => {
+      state.isLoading = false;
+      state.products = state.products.filter(p => p.id !== action.payload);
+      state.error = null;
+    })
+    .addCase(deleteProduct.rejected, (state, action) => {
+      state.isLoading = false;
+      state.error = action.payload;
+    });
   }
 });
 

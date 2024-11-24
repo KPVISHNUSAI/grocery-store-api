@@ -109,15 +109,6 @@ const AdminDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    fetchDashboardData();
-    
-    // Refresh every 5 minutes
-    const interval = setInterval(fetchDashboardData, 5 * 60 * 1000);
-    
-    // Cleanup interval on component unmount
-    return () => clearInterval(interval);
-  }, []);
 
   if (isLoading) return <LoadingSpinner />;
   // Add error boundary
